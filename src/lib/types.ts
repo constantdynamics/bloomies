@@ -37,7 +37,25 @@ export interface Plant {
   herkend_door_ai: boolean
   zekerheid: string | null
   notitie: string | null
+  water_interval_dagen: number | null
+  laatst_water: string | null
+  verzorging: Verzorging | null
   created_at: string
+}
+
+export interface Verzorging {
+  ideale_temperatuur?: string
+  luchtvochtigheid?: string
+  licht?: string
+  standplaats?: string
+  water_frequentie_dagen?: number
+  water_toelichting?: string
+  winter?: string
+  zomer?: string
+  plek_check?: string
+  basis?: string[]
+  extra_verwennen?: string[]
+  veelgemaakte_fouten?: string[]
 }
 
 export interface Task {

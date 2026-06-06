@@ -7,6 +7,7 @@ import {
   updateSuggestion,
   addTasks,
   updateTask,
+  updatePlant,
   updateGarden,
   addPhoto,
   listPhotos,
@@ -14,8 +15,10 @@ import {
 import { uploadFoto } from '../lib/storage'
 import { getLocation, geocode, weerSamenvatting } from '../lib/weather'
 import { timingStatus, timingLabel, seizoenEmoji, datumNL } from '../lib/season'
+import { waterStatus, waterLabel, waterKleur } from '../lib/water'
+import { notificatiesBeschikbaar, notificatieStatus, vraagNotificaties } from '../lib/notify'
 import type { VerkleindeFoto } from '../lib/image'
-import type { Suggestion, Task } from '../lib/types'
+import type { Plant, Suggestion, Task } from '../lib/types'
 
 type Tab = 'vandaag' | 'planten' | 'plan' | 'voorraad' | 'vogels'
 
@@ -75,6 +78,8 @@ export function VandaagScreen({ onTab, onGoeroe }: { onTab: (t: Tab) => void; on
         <SnelAct emoji="🗓️" label="Mijn plan" onClick={() => onTab('plan')} />
       </div>
 
+      <WaterBlok />
+
       <VandaagTaken tasks={tasks} onTab={onTab} />
 
       {garden?.suggesties_aan && <SuggestieBlok suggestions={suggestions} />}
@@ -107,6 +112,43 @@ function SnelAct({ emoji, label, onClick }: { emoji: string; label: string; onCl
       <span className="text-2xl">{emoji}</span>
       <span className="text-xs font-semibold text-bark-600 text-center leading-tight">{label}</span>
     </button>
+  )
+}
+
+function WaterBlok() {
+  const { plants, refreshPlants, meld } = useGarden()
+  const dorst = plants
+    .map((p) => ({ p, ws: waterStatus(p) }))
+    .filter((x) => x.ws.actief && (x.ws.fase === 'teLaat' || x.ws.fase === 'vandaag' || x.ws.fase === 'binnenkort'))
+    .sort((a, b) => a.ws.msTot - b.ws.msTot)
+
+  if (!dorst.length) return null
+
+  async function gegeven(p: Plant) {
+    await updatePlant(p.id, { laatst_water: new Date().toISOString() })
+    await refreshPlants()
+    meld(`${p.naam}: water gegeven 💧`)
+  }
+
+  return (
+    <div className="mt-4">
+      <h3 className="font-display text-lg text-bark-700 mb-2">💧 Water geven</h3>
+      <div className="flex flex-col gap-2">
+        {dorst.slice(0, 6).map(({ p, ws }) => (
+          <div key={p.id} className="card p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-bark-800 line-clamp-1">{p.naam}</p>
+              <div className="mt-0.5">
+                <Chip klasse={waterKleur(ws.fase)}>{waterLabel(ws)}</Chip>
+              </div>
+            </div>
+            <button className="btn-primary text-sm py-1.5 px-3" onClick={() => gegeven(p)}>
+              ✓ Gegeven
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -282,11 +324,12 @@ function EvaluatieKaart() {
 }
 
 function SettingsSheet({ onClose }: { onClose: () => void }) {
-  const { garden, setGarden, laadWeer, meld } = useGarden()
+  const { garden, setGarden, laadWeer, meld, setIntro } = useGarden()
   const [plaats, setPlaats] = useState(garden?.locatie_naam ?? '')
   const [notities, setNotities] = useState(garden?.klimaatnotities ?? '')
   const [bezigLoc, setBezigLoc] = useState(false)
   const [suggAan, setSuggAan] = useState(garden?.suggesties_aan ?? true)
+  const [notif, setNotif] = useState(notificatieStatus())
 
   async function gebruikLocatie() {
     setBezigLoc(true)
@@ -356,6 +399,42 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <span className={`absolute top-1 h-5 w-5 bg-white rounded-full transition-all ${suggAan ? 'left-6' : 'left-1'}`} />
           </button>
         </label>
+
+        {notificatiesBeschikbaar() && (
+          <label className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-bark-700">Water-meldingen</p>
+              <p className="text-xs text-bark-400">
+                {notif === 'granted'
+                  ? 'Aan — je krijgt een seintje bij dorst'
+                  : notif === 'denied'
+                    ? 'Geblokkeerd in je browser-instellingen'
+                    : 'Krijg een seintje wanneer planten dorst hebben'}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                const ok = await vraagNotificaties()
+                setNotif(notificatieStatus())
+                if (ok) meld('Meldingen aan 🔔')
+              }}
+              disabled={notif !== 'default'}
+              className="btn-secondary text-sm py-1.5 px-3 disabled:opacity-60"
+            >
+              {notif === 'granted' ? 'Aan' : notif === 'denied' ? 'Geblokkeerd' : 'Aanzetten'}
+            </button>
+          </label>
+        )}
+
+        <button
+          className="btn-ghost justify-start text-bark-600"
+          onClick={() => {
+            setIntro(true)
+            onClose()
+          }}
+        >
+          👋 Bekijk de introductie opnieuw
+        </button>
 
         <div>
           <label className="label">Klimaat / tuinnotities (optioneel)</label>

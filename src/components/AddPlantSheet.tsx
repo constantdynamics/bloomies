@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Sheet, Spinner, Chip } from './ui'
 import { PhotoUploader } from './PhotoUploader'
 import { useGarden } from '../lib/GardenContext'
-import { herkenPlant } from '../lib/api'
+import { herkenPlant, haalVerzorging } from '../lib/api'
 import { uploadFoto } from '../lib/storage'
-import { addPlant, addPhoto } from '../lib/db'
+import { addPlant, addPhoto, updatePlant } from '../lib/db'
+import { getSeason } from '../lib/season'
 import type { VerkleindeFoto } from '../lib/image'
 import type { IdentifyResult, Plant, PlantType } from '../lib/types'
 
@@ -98,6 +99,19 @@ export function AddPlantSheet({
       await refreshPlants()
       meld(`${plant.naam} toegevoegd 🌱`)
       onAdded?.(plant)
+      // Achtergrond: verzorgingsprofiel + waterinterval ophalen (blokkeert niet).
+      haalVerzorging({ naam: plant.naam, soort: plant.soort, type: plant.type, locatie_in_tuin: plant.locatie_in_tuin, seizoen: getSeason() })
+        .then(async (v) => {
+          await updatePlant(plant.id, {
+            verzorging: v,
+            water_interval_dagen: typeof v.water_frequentie_dagen === 'number' ? v.water_frequentie_dagen : null,
+            laatst_water: new Date().toISOString(),
+          })
+          await refreshPlants()
+        })
+        .catch(() => {
+          /* stil: profiel kan later handmatig opgehaald worden */
+        })
       sluit()
     } catch (e: any) {
       setFout(e?.message || 'Opslaan mislukt.')

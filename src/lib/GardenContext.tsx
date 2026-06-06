@@ -43,8 +43,10 @@ interface GardenState {
   seizoen: Seizoen
   ervaring: Ervaring
   melding: string | null
+  intro: boolean
 
   meld: (tekst: string) => void
+  setIntro: (v: boolean) => void
   setGarden: (g: Garden) => void
   refreshGarden: () => Promise<void>
   refreshPlants: () => Promise<void>
@@ -84,6 +86,21 @@ export function GardenProvider({ children }: { children: ReactNode }) {
   const [weather, setWeather] = useState<WeatherNow | null>(null)
   const [melding, setMelding] = useState<string | null>(null)
   const meldTimer = useRef<number | null>(null)
+  const [intro, setIntroState] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('bloomies_intro_v1')
+    } catch {
+      return false
+    }
+  })
+  const setIntro = useCallback((v: boolean) => {
+    setIntroState(v)
+    try {
+      if (!v) localStorage.setItem('bloomies_intro_v1', '1')
+    } catch {
+      /* niets */
+    }
+  }, [])
 
   const seizoen = getSeason()
 
@@ -163,7 +180,9 @@ export function GardenProvider({ children }: { children: ReactNode }) {
     seizoen,
     ervaring,
     melding,
+    intro,
     meld,
+    setIntro,
     setGarden,
     refreshGarden,
     refreshPlants,

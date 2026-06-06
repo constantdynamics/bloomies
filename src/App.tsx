@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGarden } from './lib/GardenContext'
 import { LaadScherm } from './components/ui'
+import { OnboardingScreen } from './screens/OnboardingScreen'
 import { VandaagScreen } from './screens/VandaagScreen'
 import { PlantenScreen } from './screens/PlantenScreen'
 import { PlanScreen } from './screens/PlanScreen'
 import { VoorraadScreen } from './screens/VoorraadScreen'
 import { VogelsScreen } from './screens/VogelsScreen'
 import { BriefingScreen } from './screens/BriefingScreen'
+import { waterStatus, volgendeWaterDatum } from './lib/water'
+import { toonMelding, notificatieStatus } from './lib/notify'
 
 type Tab = 'vandaag' | 'planten' | 'plan' | 'voorraad' | 'vogels'
 
@@ -19,9 +22,53 @@ const NAV: { id: Tab; emoji: string; label: string }[] = [
 ]
 
 export default function App() {
-  const { laden, melding } = useGarden()
+  const { laden, melding, intro, setIntro, plants } = useGarden()
   const [tab, setTab] = useState<Tab>('vandaag')
   const [briefingOpen, setBriefingOpen] = useState(false)
+
+  // Water-meldingen (werkt zolang de app open is, ook op een achtergrond-tab).
+  useEffect(() => {
+    if (!plants.length) return
+    function check() {
+      if (notificatieStatus() !== 'granted') return
+      const due = plants.filter((p) => p.water_interval_dagen && waterStatus(p).due)
+      if (!due.length) return
+      let map: Record<string, string> = {}
+      try {
+        map = JSON.parse(localStorage.getItem('bloomies_waternotif') || '{}')
+      } catch {
+        /* niets */
+      }
+      const nieuw = due.filter((p) => {
+        const d = volgendeWaterDatum(p)?.toDateString()
+        return d && map[p.id] !== d
+      })
+      if (!nieuw.length) return
+      for (const p of nieuw) {
+        const d = volgendeWaterDatum(p)?.toDateString()
+        if (d) map[p.id] = d
+      }
+      try {
+        localStorage.setItem('bloomies_waternotif', JSON.stringify(map))
+      } catch {
+        /* niets */
+      }
+      if (nieuw.length === 1) toonMelding('Tijd om water te geven 💧', `${nieuw[0].naam} heeft dorst.`, 'bloom-water')
+      else toonMelding('Tijd om water te geven 💧', `${nieuw.length} planten hebben dorst.`, 'bloom-water')
+    }
+    check()
+    const id = window.setInterval(check, 3600000)
+    const vis = () => {
+      if (document.visibilityState === 'visible') check()
+    }
+    document.addEventListener('visibilitychange', vis)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', vis)
+    }
+  }, [plants])
+
+  if (intro) return <OnboardingScreen onKlaar={() => setIntro(false)} />
 
   if (laden) {
     return (
@@ -33,7 +80,15 @@ export default function App() {
   }
 
   if (briefingOpen) {
-    return <BriefingScreen onClose={() => setBriefingOpen(false)} onNaarPlan={() => { setBriefingOpen(false); setTab('plan') }} />
+    return (
+      <BriefingScreen
+        onClose={() => setBriefingOpen(false)}
+        onNaarPlan={() => {
+          setBriefingOpen(false)
+          setTab('plan')
+        }}
+      />
+    )
   }
 
   return (
@@ -41,9 +96,7 @@ export default function App() {
       <Header onGoeroe={() => setBriefingOpen(true)} />
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-28 pt-2">
-        {tab === 'vandaag' && (
-          <VandaagScreen onTab={(t) => setTab(t)} onGoeroe={() => setBriefingOpen(true)} />
-        )}
+        {tab === 'vandaag' && <VandaagScreen onTab={(t) => setTab(t)} onGoeroe={() => setBriefingOpen(true)} />}
         {tab === 'planten' && <PlantenScreen />}
         {tab === 'plan' && <PlanScreen onGoeroe={() => setBriefingOpen(true)} />}
         {tab === 'voorraad' && <VoorraadScreen />}

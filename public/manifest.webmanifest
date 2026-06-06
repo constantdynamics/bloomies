@@ -1,0 +1,19 @@
+{
+  "name": "Bloomies — Het hof van Luuk en Marieke",
+  "short_name": "Bloomies",
+  "description": "Jullie warme tuin- en plantverzorgingsmaatje.",
+  "start_url": "/bloomies/",
+  "scope": "/bloomies/",
+  "display": "standalone",
+  "background_color": "#F6F1E7",
+  "theme_color": "#5A8247",
+  "lang": "nl",
+  "icons": [
+    {
+      "src": "/bloomies/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

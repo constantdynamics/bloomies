@@ -11,3 +11,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </GardenProvider>
   </React.StrictMode>,
 )
+
+// Service worker registreren (PWA: installeerbaar + meldingen).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
+      /* stil falen: app werkt ook zonder service worker */
+    })
+  })
+}
