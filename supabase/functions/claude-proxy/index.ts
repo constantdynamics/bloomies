@@ -4,7 +4,8 @@
 //   - Anthropic Claude (betaald)   via secret ANTHROPIC_API_KEY
 // Keuze: env AI_PROVIDER ('gemini' | 'claude'), anders automatisch (Gemini eerst
 // als die sleutel bestaat). De frontend stuurt altijd hetzelfde (Anthropic-vorm);
-// voor Gemini vertaalt deze functie heen en terug.
+// voor Gemini vertaalt deze functie heen en terug. Bij een quota-fout (limiet 0)
+// probeert hij automatisch een ander Gemini-model.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
 const cors = {
@@ -17,7 +18,6 @@ function res(body: unknown, status = 200): Response {
 }
 const geminiKey = () => Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_API_KEY') ?? ''
 const anthropicKey = () => Deno.env.get('ANTHROPIC_API_KEY') ?? Deno.env.get('CLAUDE_API_KEY') ?? ''
-const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash'
 const CLAUDE_MODEL = 'claude-sonnet-4-5'
 
 Deno.serve(async (req: Request) => {
@@ -82,21 +82,35 @@ async function viaGemini(body: any, apiKey: string): Promise<Response> {
     payload.systemInstruction = { parts: [{ text: body.system }] }
   }
 
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey
-  let r: Response
-  try {
-    r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
-  } catch (_e) {
-    return res({ error: { type: 'network', message: 'Kon Gemini niet bereiken.' } }, 502)
+  const envModel = Deno.env.get('GEMINI_MODEL') ?? ''
+  const modellen = envModel ? [envModel] : ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash-lite']
+
+  let laatsteStatus = 0
+  let laatsteMsg = ''
+  for (const model of modellen) {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey
+    let r: Response
+    try {
+      r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+    } catch (_e) {
+      return res({ error: { type: 'network', message: 'Kon Gemini niet bereiken.' } }, 502)
+    }
+    const data = await r.json().catch(() => null)
+    if (r.ok) {
+      const parts = data?.candidates?.[0]?.content?.parts ?? []
+      const text = parts.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text).join('')
+      return res({ content: [{ type: 'text', text }] }, 200)
+    }
+    laatsteStatus = r.status
+    laatsteMsg = data?.error?.message || ''
+    if (r.status === 429) continue
+    break
   }
-  const data = await r.json().catch(() => null)
-  if (!r.ok) {
-    const msg = data?.error?.message || 'Gemini gaf een foutmelding.'
-    return res({ error: { type: 'gemini_error', message: 'AI (Gemini): ' + msg } }, 502)
-  }
-  const parts = data?.candidates?.[0]?.content?.parts ?? []
-  const text = parts.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text).join('')
-  return res({ content: [{ type: 'text', text }] }, 200)
+
+  const msg = laatsteStatus === 429
+    ? 'AI (Gemini): deze sleutel heeft geen gratis quota (Google meldt limiet 0). Probeer een sleutel van een ander Google-account, of gebruik Claude met een klein tegoed.'
+    : 'AI (Gemini): ' + (laatsteMsg || 'foutmelding.')
+  return res({ error: { type: 'gemini_error', message: msg } }, 502)
 }
 
 async function blocksToParts(content: any): Promise<any[]> {
