@@ -109,9 +109,16 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
   const [uploaden, setUploaden] = useState(false)
   const [careBezig, setCareBezig] = useState(false)
   const [intervalDagen, setIntervalDagen] = useState(plant.water_interval_dagen ? String(plant.water_interval_dagen) : '')
+  const [groot, setGroot] = useState<Photo | null>(null)
 
   useEffect(() => {
-    listPhotos().then((alle) => setFotos(alle.filter((f) => f.plant_id === plant.id)))
+    listPhotos().then((alle) =>
+      setFotos(
+        alle
+          .filter((f) => f.plant_id === plant.id)
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      ),
+    )
   }, [plant.id])
 
   async function patch(p: Partial<Plant>) {
@@ -157,7 +164,7 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
     try {
       const url = await uploadFoto(f.blob, 'voortgang')
       const nieuw = await addPhoto({ plant_id: huidig.id, url, type: 'evaluatie', notitie: huidig.naam })
-      setFotos((prev) => [nieuw, ...prev])
+      setFotos((prev) => [...prev, nieuw])
       if (!huidig.foto_url) await patch({ foto_url: url })
       meld('Voortgangsfoto opgeslagen 📸')
     } catch (e: any) {
@@ -206,7 +213,7 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
         <img src={huidig.foto_url} alt={huidig.naam} className="w-full h-48 object-cover rounded-2xl border border-cream-200 mb-3" />
       )}
       {huidig.herkend_door_ai && (
-        <p className="text-xs text-bark-400 mb-3">🌱 Herkend met hulp van de goeroe{huidig.zekerheid ? ` · zekerheid ${huidig.zekerheid}` : ''}</p>
+        <p className="text-xs text-bark-400 mb-3">🌱 Herkend met hulp van Kaat{huidig.zekerheid ? ` · zekerheid ${huidig.zekerheid}` : ''}</p>
       )}
 
       {/* Water-herinnering */}
@@ -254,7 +261,7 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
           <VerzorgingKaart v={huidig.verzorging} />
         ) : (
           <div className="card p-4 text-center">
-            <p className="text-bark-500 text-sm mb-3">Nog geen verzorgingsprofiel. Laat de goeroe temperatuur, luchtvochtigheid, de beste plek, winter/zomer en groeitips bepalen.</p>
+            <p className="text-bark-500 text-sm mb-3">Nog geen verzorgingsprofiel. Laat Kaat temperatuur, luchtvochtigheid, de beste plek, winter/zomer en groeitips bepalen.</p>
             <button className="btn-primary" onClick={haalCare} disabled={careBezig}>
               {careBezig ? (
                 <>
@@ -295,10 +302,10 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
         </div>
       </details>
 
-      {/* Voortgang */}
+      {/* Groeigalerij */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-display text-lg text-bark-700">📸 Voortgang</h3>
+          <h3 className="font-display text-lg text-bark-700">📸 Groeigalerij{fotos.length ? ` · ${fotos.length}` : ''}</h3>
           <PhotoUploader onFoto={voortgangsfoto} label="Foto" variant="secondary" />
         </div>
         {uploaden && (
@@ -307,24 +314,47 @@ function PlantDetail({ plant, onClose }: { plant: Plant; onClose: () => void }) 
           </p>
         )}
         {fotos.length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {fotos.map((f) => (
-              <div key={f.id} className="shrink-0">
-                <img src={f.url} alt="voortgang" className="h-24 w-24 object-cover rounded-xl border border-cream-200" />
-                <p className="text-[10px] text-bark-400 text-center mt-0.5">
-                  {new Date(f.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
-                </p>
-              </div>
-            ))}
-          </div>
+          <>
+            <p className="text-xs text-bark-400 mb-1.5">Van begin (links) tot nu (rechts) — tik op een foto voor groot.</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {fotos.map((f, idx) => (
+                <button key={f.id} className="shrink-0 active:scale-95 transition" onClick={() => setGroot(f)}>
+                  <div className="relative">
+                    <img src={f.url} alt="voortgang" className="h-28 w-28 object-cover rounded-xl border border-cream-200" />
+                    {idx === 0 && (
+                      <span className="absolute top-1 left-1 chip bg-cream-50/90 text-bark-600 text-[10px] px-1.5 py-0">begin</span>
+                    )}
+                    {idx === fotos.length - 1 && fotos.length > 1 && (
+                      <span className="absolute top-1 left-1 chip bg-leaf-500/90 text-white text-[10px] px-1.5 py-0">nu</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-bark-400 text-center mt-0.5">
+                    {new Date(f.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: '2-digit' })}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </>
         ) : (
-          <p className="text-bark-400 text-sm">Nog geen voortgangsfoto's. Maak er af en toe één voor een mooie before/after.</p>
+          <p className="text-bark-400 text-sm">Nog geen foto's. Maak er af en toe één — dan zie je je plant groeien van klein naar koeiedikke joekel. 🌱</p>
         )}
       </div>
 
       <button className="btn-ghost text-bloom-600 w-full mt-2" onClick={verwijder}>
         Plant verwijderen
       </button>
+
+      {groot && (
+        <div className="fixed inset-0 z-[70] bg-bark-900/85 flex items-center justify-center p-4" onClick={() => setGroot(null)}>
+          <div className="max-w-lg w-full">
+            <img src={groot.url} alt="voortgang" className="w-full max-h-[75vh] object-contain rounded-2xl" />
+            <p className="text-cream-100 text-center text-sm mt-3">
+              {new Date(groot.created_at).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            <p className="text-cream-200/70 text-center text-xs mt-1">Tik om te sluiten</p>
+          </div>
+        </div>
+      )}
     </Sheet>
   )
 }

@@ -16,7 +16,6 @@ import { uploadFoto } from '../lib/storage'
 import { getLocation, geocode, weerSamenvatting } from '../lib/weather'
 import { timingStatus, timingLabel, seizoenEmoji, datumNL } from '../lib/season'
 import { waterStatus, waterLabel, waterKleur } from '../lib/water'
-import { notificatiesBeschikbaar, notificatieStatus, vraagNotificaties } from '../lib/notify'
 import type { VerkleindeFoto } from '../lib/image'
 import type { Plant, Suggestion, Task } from '../lib/types'
 
@@ -58,14 +57,14 @@ export function VandaagScreen({ onTab, onGoeroe }: { onTab: (t: Tab) => void; on
           <h3 className="font-display text-xl text-leaf-700 mb-1">Welkom in je hof 🌿</h3>
           <p className="text-bark-600 text-sm leading-relaxed mb-3">
             Bloomies begint helemaal leeg — bij jouw tuin. Maak een paar foto's van je planten en tuin,
-            of praat met de goeroe over je dromen voor het komende jaar. Daarna maak ik een persoonlijk plan.
+            of praat met Kaat over je dromen voor het komende jaar. Daarna maak ik een persoonlijk plan.
           </p>
           <div className="flex flex-col gap-2">
             <button className="btn-primary" onClick={() => setAddOpen(true)}>
               📷 Voeg je eerste plant toe
             </button>
             <button className="btn-secondary" onClick={onGoeroe}>
-              🌱 Praat met de goeroe
+              🌱 Praat met Kaat
             </button>
           </div>
         </div>
@@ -74,7 +73,7 @@ export function VandaagScreen({ onTab, onGoeroe }: { onTab: (t: Tab) => void; on
       {/* Snelle acties */}
       <div className="grid grid-cols-3 gap-2 mt-3">
         <SnelAct emoji="📷" label="Plant + foto" onClick={() => setAddOpen(true)} />
-        <SnelAct emoji="🌱" label="Goeroe" onClick={onGoeroe} />
+        <SnelAct emoji="🌱" label="Kaat" onClick={onGoeroe} />
         <SnelAct emoji="🗓️" label="Mijn plan" onClick={() => onTab('plan')} />
       </div>
 
@@ -329,7 +328,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
   const [notities, setNotities] = useState(garden?.klimaatnotities ?? '')
   const [bezigLoc, setBezigLoc] = useState(false)
   const [suggAan, setSuggAan] = useState(garden?.suggesties_aan ?? true)
-  const [notif, setNotif] = useState(notificatieStatus())
 
   async function gebruikLocatie() {
     setBezigLoc(true)
@@ -389,7 +387,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
 
         <label className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-semibold text-bark-700">Suggesties van de goeroe</p>
+            <p className="font-semibold text-bark-700">Suggesties van Kaat</p>
             <p className="text-xs text-bark-400">Tips en ideeën voor jouw tuin</p>
           </div>
           <button
@@ -399,32 +397,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <span className={`absolute top-1 h-5 w-5 bg-white rounded-full transition-all ${suggAan ? 'left-6' : 'left-1'}`} />
           </button>
         </label>
-
-        {notificatiesBeschikbaar() && (
-          <label className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-bark-700">Water-meldingen</p>
-              <p className="text-xs text-bark-400">
-                {notif === 'granted'
-                  ? 'Aan — je krijgt een seintje bij dorst'
-                  : notif === 'denied'
-                    ? 'Geblokkeerd in je browser-instellingen'
-                    : 'Krijg een seintje wanneer planten dorst hebben'}
-              </p>
-            </div>
-            <button
-              onClick={async () => {
-                const ok = await vraagNotificaties()
-                setNotif(notificatieStatus())
-                if (ok) meld('Meldingen aan 🔔')
-              }}
-              disabled={notif !== 'default'}
-              className="btn-secondary text-sm py-1.5 px-3 disabled:opacity-60"
-            >
-              {notif === 'granted' ? 'Aan' : notif === 'denied' ? 'Geblokkeerd' : 'Aanzetten'}
-            </button>
-          </label>
-        )}
 
         <button
           className="btn-ghost justify-start text-bark-600"

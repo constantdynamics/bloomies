@@ -104,7 +104,7 @@ export function BriefingScreen({ onClose, onNaarPlan }: { onClose: () => void; o
       setMessages((m) => [...m, opgeslagen])
       if (spraakUit) spreek(res.bericht)
     } catch (e: any) {
-      setFout(e?.message || 'De goeroe gaf geen antwoord. Probeer het nog eens.')
+      setFout(e?.message || 'Kaat gaf geen antwoord. Probeer het nog eens.')
     } finally {
       setDenkt(false)
     }
@@ -204,8 +204,8 @@ export function BriefingScreen({ onClose, onNaarPlan }: { onClose: () => void; o
             ←
           </button>
           <div className="flex-1">
-            <h1 className="font-display text-xl text-leaf-700 leading-tight">De goeroe 🌱</h1>
-            <p className="text-[11px] text-bark-400 -mt-0.5">Vertel over je tuindromen</p>
+            <h1 className="font-display text-lg text-leaf-700 leading-tight">Kaat de Groenfanaat 🌱</h1>
+            <p className="text-[11px] text-bark-400 -mt-0.5">jouw goeroe voor al het groen in de tuin</p>
           </div>
           {ttsBeschikbaar() && (
             <button
@@ -235,7 +235,7 @@ export function BriefingScreen({ onClose, onNaarPlan }: { onClose: () => void; o
             ))}
             {denkt && (
               <div className="self-start flex items-center gap-2 text-bark-400 text-sm px-2">
-                <Spinner klein /> de goeroe denkt na…
+                <Spinner klein /> Kaat denkt na…
               </div>
             )}
             {fout && (
@@ -329,7 +329,7 @@ export function BriefingScreen({ onClose, onNaarPlan }: { onClose: () => void; o
           )}
 
           {mode === 'meerkeuze' && keuzes.length === 0 && (
-            <p className="text-bark-400 text-sm text-center">De goeroe stelde een open vraag — typ of spreek je antwoord.</p>
+            <p className="text-bark-400 text-sm text-center">Kaat stelde een open vraag — typ of spreek je antwoord.</p>
           )}
         </div>
       </div>

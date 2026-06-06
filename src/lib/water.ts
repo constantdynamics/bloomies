@@ -55,3 +55,35 @@ export function waterKleur(fase: WaterFase): string {
       return 'bg-leaf-100 text-leaf-700'
   }
 }
+
+// Urgentie 0 (net water gehad) → 1 (tijd, of te laat). -1 = geen timer ingesteld.
+export function waterUrgentie(p: Plant, nu: number = Date.now()): number {
+  if (!p.water_interval_dagen || p.water_interval_dagen <= 0) return -1
+  const basis = p.laatst_water ? new Date(p.laatst_water).getTime() : new Date(p.created_at).getTime()
+  const intervalMs = p.water_interval_dagen * DAG
+  if (intervalMs <= 0) return -1
+  return Math.max(0, Math.min(1, (nu - basis) / intervalMs))
+}
+
+export function maxWaterUrgentie(plants: Plant[], nu: number = Date.now()): number {
+  let m = 0
+  for (const p of plants) {
+    const u = waterUrgentie(p, nu)
+    if (u > m) m = u
+  }
+  return m
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t)
+}
+
+// Vloeiende kleur van groen (rustig) via amber naar rood (actie nodig).
+export function urgentieKleur(fractie: number): string {
+  const groen = [90, 130, 71]
+  const amber = [210, 140, 55]
+  const rood = [194, 87, 54]
+  const f = Math.max(0, Math.min(1, fractie))
+  const [c1, c2, t] = f < 0.5 ? [groen, amber, f / 0.5] : [amber, rood, (f - 0.5) / 0.5]
+  return `rgb(${lerp(c1[0], c2[0], t)}, ${lerp(c1[1], c2[1], t)}, ${lerp(c1[2], c2[2], t)})`
+}

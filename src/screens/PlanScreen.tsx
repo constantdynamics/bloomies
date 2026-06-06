@@ -95,21 +95,21 @@ export function PlanScreen({ onGoeroe }: { onGoeroe: () => void }) {
         <div className="card">
           {bezig ? (
             <div className="py-14 flex flex-col items-center">
-              <EmptyState emoji="🌻" titel="De goeroe maakt je jaarplan…" tekst="Even geduld — dit duurt een paar tellen." />
+              <EmptyState emoji="🌻" titel="Kaat maakt je jaarplan…" tekst="Even geduld — dit duurt een paar tellen." />
               <Spinner />
             </div>
           ) : (
             <EmptyState
               emoji="🗓️"
               titel="Nog geen plan"
-              tekst="Laat de goeroe een volledig jaarplan maken op basis van je planten, doelen en het seizoen. Een briefinggesprek maakt het plan persoonlijker."
+              tekst="Laat Kaat een volledig jaarplan maken op basis van je planten, doelen en het seizoen. Een gesprek met Kaat maakt het plan persoonlijker."
               actie={
                 <div className="flex flex-col gap-2">
                   <button className="btn-primary" onClick={() => genereer(false)}>
                     🌻 Genereer mijn jaarplan
                   </button>
                   <button className="btn-ghost" onClick={onGoeroe}>
-                    Eerst praten met de goeroe
+                    Eerst praten met Kaat
                   </button>
                 </div>
               }
@@ -121,7 +121,7 @@ export function PlanScreen({ onGoeroe }: { onGoeroe: () => void }) {
           {garden?.laatste_analyse && (
             <div className="card p-4 mb-3 bg-leaf-50 border-leaf-100">
               <button className="w-full flex items-center justify-between text-left" onClick={() => setAnalyseOpen((o) => !o)}>
-                <span className="font-display text-lg text-leaf-700">🌱 Analyse van de goeroe</span>
+                <span className="font-display text-lg text-leaf-700">🌱 Analyse van Kaat</span>
                 <span className="text-leaf-600">{analyseOpen ? '▲' : '▼'}</span>
               </button>
               {analyseOpen && (

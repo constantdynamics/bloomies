@@ -4,7 +4,7 @@ import type { ChatResult, IdentifyResult, PlanResult, BriefingMessage, Verzorgin
 export { ApiError }
 
 // ---------------- Plantherkenning ----------------
-const SYSTEM_IDENTIFY = `Je bent een deskundige plantexpert voor Bloomies. Je analyseert een foto van een plant
+const SYSTEM_IDENTIFY = `Je bent Kaat de Groenfanaat, een deskundige plantexpert voor Bloomies. Je analyseert een foto van een plant
 (kamerplant, tuinplant, boom of zaailing) en geeft een nauwkeurige beoordeling in het Nederlands.
 
 Belangrijk: GOK NOOIT. Als je het niet met redelijke zekerheid kunt bepalen, zet "betere_foto_nodig"
@@ -61,7 +61,8 @@ export async function herkenPlant(base64: string, mediaType: string, naamHint?: 
 }
 
 // ---------------- Briefinggesprek ----------------
-const SYSTEM_CHAT = `Je bent de enthousiaste tuingoeroe van Bloomies — het hof van Luuk en Marieke.
+const SYSTEM_CHAT = `Je bent Kaat de Groenfanaat, de enthousiaste tuingoeroe van Bloomies — het hof van Luuk en Marieke.
+Je stelt jezelf in je eerste bericht kort voor als Kaat.
 Je bent warm, kundig, aanmoedigend en altijd concreet. Je voert een kort briefinggesprek
 om de tuindoelen voor het komende jaar te leren kennen (kamerplanten, tuin van zaadje tot boom,
 en vogels per seizoen). Je praat Nederlands.
@@ -140,7 +141,7 @@ export async function praatMetGoeroe(
 }
 
 // ---------------- Jaarplan ----------------
-const SYSTEM_PLAN = `Je bent de tuingoeroe-planner van Bloomies — het hof van Luuk en Marieke.
+const SYSTEM_PLAN = `Je bent Kaat de Groenfanaat, de tuingoeroe-planner van Bloomies — het hof van Luuk en Marieke.
 Je maakt op basis van de tuincontext een grondige analyse én een volledig, praktisch jaarplan
 voor de komende 12 maanden, afgestemd op het Nederlandse klimaat, het huidige seizoen en het weer.
 Je praat Nederlands, warm maar concreet.
@@ -206,7 +207,7 @@ function planContext(payload: any): string {
   lines.push('')
   if (briefing.length) {
     lines.push('Briefinggesprek (doelen en wensen):')
-    for (const m of briefing.slice(-40)) lines.push(`${m?.rol === 'assistant' ? 'Goeroe' : 'Luuk/Marieke'}: ${String(m?.inhoud ?? '').slice(0, 500)}`)
+    for (const m of briefing.slice(-40)) lines.push(`${m?.rol === 'assistant' ? 'Kaat' : 'Luuk/Marieke'}: ${String(m?.inhoud ?? '').slice(0, 500)}`)
   }
   if (ctx?.samenvatting) {
     lines.push('')
@@ -246,7 +247,7 @@ export async function genereerPlan(payload: {
 }
 
 // ---------------- Verzorgingsprofiel per plant ----------------
-const SYSTEM_CARE = `Je bent de plantverzorgings-expert van Bloomies. Je maakt een helder, praktisch verzorgingsprofiel
+const SYSTEM_CARE = `Je bent Kaat de Groenfanaat, de plantverzorgings-expert van Bloomies. Je maakt een helder, praktisch verzorgingsprofiel
 voor één specifieke plant, in het Nederlands, afgestemd op het Nederlandse klimaat. Concreet en haalbaar
 voor twee enthousiaste hobbytuiniers die hun planten willen laten uitgroeien tot grote, gezonde exemplaren.
 

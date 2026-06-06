@@ -1,11 +1,11 @@
 # 🌿 Bloomies — Het hof van Luuk en Marieke
 
 Een warme, persoonlijke tuin- en plantverzorgings-app, als digitaal trouwcadeau voor Luuk en Marieke.
-Bloomies begeleidt drie domeinen in één samenhangend seizoensplan:
+Met **Kaat de Groenfanaat** als enthousiaste tuingoeroe. Drie domeinen in één seizoensplan:
 
 1. **Kamerplanten** (binnen)
-2. **Tuinvegetatie** (van zaadje tot bloem tot boom — moestuin + siertuin)
-3. **Vogels per seizoen** (voeren, water, nestkasten, niet snoeien in de broedtijd)
+2. **Tuinvegetatie** (van zaadje tot bloem tot boom)
+3. **Vogels per seizoen**
 
 Volledig in het Nederlands, mobiel-first, installeerbaar als app (PWA), geen inlog. Eén gedeelde tuin.
 
@@ -13,85 +13,70 @@ Volledig in het Nederlands, mobiel-first, installeerbaar als app (PWA), geen inl
 
 ## ✨ Wat kan het?
 
-- **Onboarding** — een warm welkom van 6 schermen dat uitlegt hoe de app werkt.
-- **Plantherkenning** — maak een foto; Claude (vision) herkent soort/cultivar en kijkt naar gezondheid,
-  ziektes en plagen. Bij twijfel vraagt hij om een betere foto in plaats van te gokken.
-- **Verzorgingsprofiel per plant** — ideale temperatuur, luchtvochtigheid, licht, de beste plek
-  (met plek-check), binnen/buiten in winter & zomer, de basis én extra tips om hem te laten uitgroeien
-  tot een koeiedikke joekel, plus de veelgemaakte fouten. Wordt automatisch opgehaald bij een nieuwe plant.
-- **Water-herinneringen** — per plant een aftellende timer; vink af zodra je water hebt gegeven. Met
-  meldingen krijg je een seintje wanneer een plant dorst heeft.
-- **Briefinggesprek** — een enthousiaste "tuingoeroe" stelt vragen over je doelen. Praat via **typen**,
-  **meerkeuze** of **spraak** (spraak-naar-tekst én voorlezen, via de browser).
-- **Jaarplan & taken** — een volledig, seizoensgericht plan met afvinkbare taken, stap-voor-stap
-  instructies en timing-advies (ideale / goede / niet-doen-periode).
-- **Inventaris & boodschappen** — de boodschappenlijst wordt automatisch afgeleid (nodig voor taken − in huis).
-- **Vogels per seizoen** — vaste seizoensadviezen, broedseizoen-waarschuwing en weer-gekoppelde tips.
-- **Weer** — via Open-Meteo (gratis, geen sleutel) op basis van je locatie.
-- **Evaluatie-check-ins** — af en toe een voortgangsfoto voor een mooie before/after.
+- **Onboarding** — een warm welkom van 6 schermen (met jullie trouwfelicitatie).
+- **Plantherkenning** — foto maken; de AI herkent soort/cultivar en kijkt naar gezondheid en plagen.
+- **Verzorgingsprofiel per plant** — temperatuur, luchtvochtigheid, licht, plek-check, binnen/buiten in
+  winter & zomer, de basis, extra groeitips én veelgemaakte fouten. Automatisch bij een nieuwe plant.
+- **Groeigalerij per plant** — foto's chronologisch van “begin” tot “nu”, tikbaar voor groot beeld.
+- **Timers-tab** — per plant een aftellende water-timer; het **tabje kleurt langzaam van groen naar rood**
+  zodra het tijd is voor actie. Afvinken met één tik. (Geen afhankelijkheid van browser-meldingen.)
+- **Kaat de Groenfanaat** — briefinggesprek via typen, meerkeuze of spraak (incl. voorlezen).
+- **Jaarplan & taken** — volledig seizoensplan met afvinkbare taken, stappen en timing-advies.
+- **Inventaris & boodschappen** — boodschappenlijst automatisch afgeleid uit je taken.
+- **Vogels per seizoen** — seizoensadviezen, broedseizoen-waarschuwing en weer-gekoppelde tips.
+- **Weer** — via Open-Meteo (gratis, geen sleutel).
 
 ---
 
 ## 🏗️ Architectuur
 
-GitHub Pages host alleen statische bestanden, dus de Claude-sleutel staat **nooit** in de frontend.
+GitHub Pages host alleen statische bestanden, dus de AI-sleutel staat **nooit** in de frontend.
 
 ```
-GitHub Pages (frontend: Vite + React + TypeScript + Tailwind, PWA)
-        │  HTTPS fetch (met publieke anon key)
+GitHub Pages (Vite + React + TypeScript + Tailwind, PWA)
+        │  HTTPS fetch (publieke anon key)
         ▼
-Supabase Edge Function "claude-proxy"  ──►  Claude API
-        │   (sleutel = secret ANTHROPIC_API_KEY, blijft server-side)
+Supabase Edge Function "claude-proxy"  ──►  Gemini (gratis)  óf  Claude (betaald)
+        │   (AI-sleutel = secret, blijft server-side)
         ▼
-Supabase Postgres (data)  +  Supabase Storage (foto's, bucket "bloomies-photos")
+Supabase Postgres (data)  +  Storage (foto's, bucket "bloomies-photos")
 ```
 
-- **claude-proxy** is een kleine, veilige doorgeefluik-functie: hij houdt alleen de sleutel vast en
-  stuurt het verzoek door naar Claude. Alle prompts en logica staan in de frontend (`src/lib/api.ts`),
-  zodat aanpassen makkelijk is — zonder de functie opnieuw te hoeven deployen.
-- **Model:** `claude-sonnet-4-5` (vision + chat). Te wijzigen via de Edge Function-env `CLAUDE_MODEL`.
-- **Project:** Supabase `wmdopfocqufsquzvemka` (gedeeld met een andere app; alle Bloomies-tabellen
-  hebben de prefix `bloom_` en een eigen storage-bucket, dus geen botsing).
+De proxy is provider-onafhankelijk: hij praat met **Google Gemini** (gratis tier) of **Anthropic Claude**,
+afhankelijk van welke secret is gezet. De prompts staan in de frontend (`src/lib/api.ts`).
 
 ---
 
-## 🔑 Instellingen
+## 🔑 AI-sleutel instellen
 
-### 1. Claude API-sleutel — waarschijnlijk al klaar ✅
+Je hebt één AI-sleutel nodig. Kies één van twee — de proxy detecteert hem automatisch.
 
-De sleutel staat als Supabase-secret `ANTHROPIC_API_KEY` en wordt gedeeld met de bestaande app in
-hetzelfde project. Je hoeft hier normaal **niets** voor te doen.
+### Optie A — Gratis: Google Gemini (aanbevolen voor dit cadeau)
 
-Krijg je in de app toch een melding dat de sleutel niet klopt of ontbreekt, (her)zet hem dan:
+1. Ga naar **https://aistudio.google.com/apikey** en log in met een Google-account.
+2. Klik **Create API key** → kopieer de sleutel (begint met `AIza...`). Gratis, geen creditcard.
+3. Zet hem in Supabase: project → **Project Settings → Edge Functions → Secrets** → nieuwe secret
+   `GEMINI_API_KEY` met die waarde. Klaar — de app werkt nu gratis.
 
-- **Dashboard:** Supabase-project → **Project Settings → Edge Functions → Secrets** → secret
-  `ANTHROPIC_API_KEY` met waarde `sk-ant-...`.
-- **CLI:** `supabase secrets set ANTHROPIC_API_KEY=sk-ant-... --project-ref wmdopfocqufsquzvemka`
+> Goed om te weten: de gratis Gemini-tier kent ruime limieten (genoeg voor twee mensen) en gebruikt
+> invoer mogelijk om Google's modellen te verbeteren. Voor een tuin-app is dat doorgaans prima.
 
-### 2. GitHub Pages
+### Optie B — Betaald: Anthropic Claude (iets hogere kwaliteit)
 
-De workflow probeert Pages automatisch in te schakelen. Lukt dat niet, ga dan naar
-**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Zet wat tegoed op de Anthropic-account (Console → Plans & Billing) en zorg dat de secret
+`ANTHROPIC_API_KEY` is gezet. Wil je Claude forceren terwijl er ook een Gemini-sleutel staat? Zet dan
+de secret `AI_PROVIDER=claude`.
 
+> Model wijzigen kan via env: `GEMINI_MODEL` (bv. `gemini-2.0-flash`) of `CLAUDE_MODEL`.
+
+### GitHub Pages
+
+De workflow schakelt Pages automatisch in. Anders: **Settings → Pages → Source: GitHub Actions**.
 Live-URL: **https://constantdynamics.github.io/bloomies/**
 
-### 3. Op je telefoon zetten (optioneel)
+### Op je telefoon (optioneel)
 
-Open de live-URL in Chrome/Safari → menu → **Toevoegen aan startscherm**. Dan opent Bloomies als app
-en werken de water-meldingen het best.
-
----
-
-## 🌱 Zo gebruik je het
-
-1. Bij de eerste keer zie je de **introductie** (later terug te zien via ⚙️ Instellingen).
-2. **Stel je locatie in** (⚙️) voor weer en betere timing.
-3. **Voeg planten toe** via 📷 — Bloomies herkent ze, maakt automatisch een verzorgingsprofiel en
-   zet een water-herinnering klaar.
-4. **Zet meldingen aan** (⚙️) zodat je een seintje krijgt bij dorst.
-5. **Praat met de goeroe** (🌱) over je wensen en laat het **jaarplan** maken (tab Plan).
-6. **Vink taken en water af**, vul je **voorraad**, bekijk de **vogels** per seizoen, en maak af en toe
-   een **voortgangsfoto**.
+Open de live-URL → browsermenu → **Toevoegen aan startscherm**. Dan opent Bloomies als app.
 
 ---
 
@@ -111,13 +96,10 @@ npm run typecheck         # TypeScript-controle
 
 `bloom_gardens`, `bloom_plants` (incl. `verzorging` json, `water_interval_dagen`, `laatst_water`),
 `bloom_tasks`, `bloom_inventory_items`, `bloom_shopping_items`, `bloom_briefing_messages`,
-`bloom_photos`, `bloom_suggestions`, `bloom_bird_actions`.
-
-Row Level Security staat aan; anonieme toegang is bewust toegestaan op uitsluitend de `bloom_`-tabellen
-(privégebruik). De storage-bucket `bloomies-photos` is publiek leesbaar.
+`bloom_photos`, `bloom_suggestions`, `bloom_bird_actions`. RLS staat aan (anonieme toegang op alleen de
+`bloom_`-tabellen). Storage-bucket `bloomies-photos` is publiek leesbaar.
 
 ## 🧩 Edge Function
 
-`claude-proxy` — veilige proxy naar `https://api.anthropic.com/v1/messages`, leest de sleutel uit
-`ANTHROPIC_API_KEY`. (De oudere, specifieke functies `analyze-meal` / `recipe-scrape` in dit project
-horen bij een andere app en blijven ongemoeid.)
+`claude-proxy` — provider-onafhankelijke AI-proxy (Gemini of Claude), leest de sleutel uit een secret.
+De functies `analyze-meal` / `recipe-scrape` in dit project horen bij een andere app en blijven ongemoeid.

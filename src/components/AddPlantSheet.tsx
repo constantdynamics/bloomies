@@ -146,7 +146,7 @@ export function AddPlantSheet({
           <img src={foto.dataUrl} alt="Plant" className="w-full h-52 object-cover rounded-2xl border border-cream-200" />
           {bezig && (
             <div className="flex items-center gap-2 text-bark-500 mt-3">
-              <Spinner klein /> De goeroe bekijkt je plant…
+              <Spinner klein /> Kaat bekijkt je plant…
             </div>
           )}
           {herkenning && !bezig && (

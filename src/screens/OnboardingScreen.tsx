@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { vraagNotificaties, notificatiesBeschikbaar } from '../lib/notify'
 
 interface Slide {
   emoji: string
@@ -34,21 +33,21 @@ const SLIDES: Slide[] = [
     emoji: '🗓️',
     titel: 'Een plan voor het hele jaar',
     tekst:
-      'De enthousiaste tuingoeroe maakt samen met jullie een jaarplan vol afvinkbare taken — voor kamerplanten, de tuin (van zaadje tot boom) én de vogels per seizoen.',
+      'Kaat de Groenfanaat, jouw goeroe voor al het groen in de tuin, maakt samen met jullie een jaarplan vol afvinkbare taken — voor kamerplanten, de tuin (van zaadje tot boom) én de vogels per seizoen.',
     bg: 'from-leaf-50 to-cream-100',
   },
   {
     emoji: '💧',
     titel: 'Nooit meer vergeten water te geven',
     tekst:
-      'Stel per plant een water-herinnering in en vink hem af als je water hebt gegeven. Zet meldingen aan, dan krijgen jullie een vriendelijk seintje wanneer een plant dorst heeft.',
+      'Stel per plant een water-herinnering in en vink hem af als je water hebt gegeven. In het Timers-tabje tellen al je planten af — het tabje kleurt langzaam van groen naar rood zodra het tijd is voor actie.',
     bg: 'from-cream-100 to-bloom-50',
   },
   {
     emoji: '🌷',
     titel: 'Zo beginnen jullie',
     tekst:
-      'Voeg je eerste plant toe met een foto, of tik op “Goeroe” om te vertellen over jullie tuindromen. Daarna rolt het plan er vanzelf uit. Heel veel tuinplezier samen! 🌻',
+      'Voeg je eerste plant toe met een foto, of tik op “Kaat” om te vertellen over jullie tuindromen. Daarna rolt het plan er vanzelf uit. Heel veel tuinplezier samen! 🌻',
     bg: 'from-leaf-50 to-bloom-50',
   },
 ]
@@ -57,7 +56,6 @@ export function OnboardingScreen({ onKlaar }: { onKlaar: () => void }) {
   const [i, setI] = useState(0)
   const slide = SLIDES[i]
   const laatste = i === SLIDES.length - 1
-  const waterSlide = i === 4
 
   return (
     <div className={`fixed inset-0 z-[60] bg-gradient-to-b ${slide.bg} flex flex-col safe-top safe-bottom`}>
@@ -76,12 +74,6 @@ export function OnboardingScreen({ onKlaar }: { onKlaar: () => void }) {
         </div>
         <h1 className="font-display text-3xl text-bark-800 leading-tight mb-4 max-w-md">{slide.titel}</h1>
         <p className="text-bark-600 leading-relaxed max-w-sm text-lg">{slide.tekst}</p>
-
-        {waterSlide && notificatiesBeschikbaar() && (
-          <button className="btn-secondary mt-6" onClick={() => vraagNotificaties()}>
-            🔔 Meldingen aanzetten
-          </button>
-        )}
       </div>
 
       <div className="px-7 pb-6">
