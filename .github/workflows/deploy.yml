@@ -1,0 +1,55 @@
+name: Bloomies bouwen & publiceren
+
+on:
+  push:
+    branches: [main, claude/youthful-dirac-Qd6x4]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Pages configureren (en zo nodig inschakelen)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - run: npm ci
+
+      - name: Build
+        env:
+          # De Supabase-URL en anon (publishable) key mogen publiek zijn.
+          # De Claude-sleutel staat NIET hier, maar als secret in de Edge Functions.
+          VITE_SUPABASE_URL: https://wmdopfocqufsquzvemka.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtZG9wZm9jcXVmc3F1enZlbWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NTQ0NDcsImV4cCI6MjA5NDQzMDQ0N30.-NlpzYaBBQajFcwEQODxMj2vkUYOqWoFX4AkMng9_30
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
