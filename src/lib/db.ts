@@ -257,3 +257,33 @@ export async function addPhoto(p: Partial<Photo>): Promise<Photo> {
   if (error) throw error
   return data as Photo
 }
+
+// ---------- Demo-reset ----------
+// Wist alle ingevoerde data en verstopt de waardebon opnieuw (voor testen).
+export async function wisDemoData(): Promise<void> {
+  const tabellen = [
+    'bloom_photos',
+    'bloom_plants',
+    'bloom_tasks',
+    'bloom_suggestions',
+    'bloom_inventory_items',
+    'bloom_shopping_items',
+    'bloom_briefing_messages',
+  ]
+  for (const t of tabellen) {
+    const { error } = await supabase.from(t).delete().eq('garden_id', GARDEN_ID)
+    if (error) throw error
+  }
+  await supabase.from('bloom_bird_actions').update({ gedaan: false }).eq('garden_id', GARDEN_ID)
+  const { error } = await supabase
+    .from('bloom_gardens')
+    .update({
+      eerste_plant_op: null,
+      bon_gezien_op: null,
+      briefing_voltooid: false,
+      laatste_analyse: null,
+      plan_bijgewerkt_op: null,
+    })
+    .eq('id', GARDEN_ID)
+  if (error) throw error
+}

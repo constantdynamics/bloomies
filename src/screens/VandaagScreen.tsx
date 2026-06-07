@@ -11,6 +11,7 @@ import {
   updateGarden,
   addPhoto,
   listPhotos,
+  wisDemoData,
 } from '../lib/db'
 import { uploadFoto } from '../lib/storage'
 import { getLocation, geocode, weerSamenvatting } from '../lib/weather'
@@ -98,6 +99,8 @@ export function VandaagScreen({ onTab, onGoeroe }: { onTab: (t: Tab) => void; on
           </div>
         </div>
       </div>
+
+      <DemoReset />
 
       <AddPlantSheet open={addOpen} onClose={() => setAddOpen(false)} />
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
@@ -318,6 +321,45 @@ function EvaluatieKaart() {
         Maak af en toe een overzichtsfoto. Zo zien we samen de vooruitgang en kan ik je plan bijstellen.
       </p>
       {bezig ? <Spinner klein /> : <PhotoUploader onFoto={foto} label="📸 Voortgangsfoto maken" variant="accent" />}
+    </div>
+  )
+}
+
+// Verstopt vierkantje: alleen voor jou om te testen. Wist alle ingevoerde data
+// en verstopt de waardebon opnieuw. Net iets donkerder dan de achtergrond.
+function DemoReset() {
+  const g = useGarden()
+  async function reset() {
+    if (
+      !confirm(
+        "Bloomies demo-reset:\n\nAlle ingevoerde planten, foto's, het plan, de inventaris en het gesprek met Kaat worden gewist, en de €100-bon wordt opnieuw verstopt.\n\nDoorgaan?",
+      )
+    )
+      return
+    try {
+      await wisDemoData()
+      await Promise.all([
+        g.refreshGarden(),
+        g.refreshPlants(),
+        g.refreshTasks(),
+        g.refreshInventory(),
+        g.refreshShopping(),
+        g.refreshSuggestions(),
+        g.refreshBirds(),
+      ])
+      g.meld('Demo gereset — alles weer fris 🌱')
+    } catch {
+      g.meld('Reset mislukt')
+    }
+  }
+  return (
+    <div className="flex justify-center pt-10 pb-1">
+      <button
+        onClick={reset}
+        aria-label="Demo reset"
+        title="Demo reset"
+        className="h-7 w-7 rounded-md bg-cream-200 active:bg-cream-300 transition"
+      />
     </div>
   )
 }
