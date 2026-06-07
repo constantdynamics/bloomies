@@ -1,11 +1,7 @@
 // Bloomies — AI-proxy (slug: claude-proxy)
-// Eén kleine, veilige proxy die de AI-sleutel server-side houdt. Werkt met:
-//   - Google Gemini (gratis tier)  via secret GEMINI_API_KEY
-//   - Anthropic Claude (betaald)   via secret ANTHROPIC_API_KEY
-// Keuze: env AI_PROVIDER ('gemini' | 'claude'), anders automatisch (Gemini eerst
-// als die sleutel bestaat). De frontend stuurt altijd hetzelfde (Anthropic-vorm);
-// voor Gemini vertaalt deze functie heen en terug. Bij een quota-fout (limiet 0)
-// probeert hij automatisch een ander Gemini-model.
+// Houdt de AI-sleutel server-side. Werkt met Google Gemini (gratis) of Anthropic
+// Claude (betaald). Bij overbelasting/quota probeert hij meerdere Gemini-modellen
+// en een tweede ronde na een korte pauze.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
 const cors = {
@@ -50,18 +46,25 @@ async function viaClaude(body: any, apiKey: string): Promise<Response> {
     system: body.system,
     messages: body.messages,
   }
-  let r: Response
-  try {
-    r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(safe),
-    })
-  } catch (_e) {
-    return res({ error: { type: 'network', message: 'Kon Claude niet bereiken.' } }, 502)
+  for (let poging = 0; poging < 2; poging++) {
+    let r: Response
+    try {
+      r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify(safe),
+      })
+    } catch (_e) {
+      return res({ error: { type: 'network', message: 'Kon Claude niet bereiken.' } }, 502)
+    }
+    if ((r.status === 429 || r.status === 500 || r.status === 503 || r.status === 529) && poging === 0) {
+      await new Promise((ok) => setTimeout(ok, 1200))
+      continue
+    }
+    const text = await r.text()
+    return new Response(text, { status: r.status, headers: { ...cors, 'content-type': 'application/json' } })
   }
-  const text = await r.text()
-  return new Response(text, { status: r.status, headers: { ...cors, 'content-type': 'application/json' } })
+  return res({ error: { type: 'overloaded', message: 'Kaat is het heel even te druk. Probeer het over een halve minuut nog eens.' } }, 502)
 }
 
 async function viaGemini(body: any, apiKey: string): Promise<Response> {
@@ -87,29 +90,32 @@ async function viaGemini(body: any, apiKey: string): Promise<Response> {
 
   let laatsteStatus = 0
   let laatsteMsg = ''
-  for (const model of modellen) {
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey
-    let r: Response
-    try {
-      r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
-    } catch (_e) {
-      return res({ error: { type: 'network', message: 'Kon Gemini niet bereiken.' } }, 502)
+  for (let ronde = 0; ronde < 2; ronde++) {
+    for (const model of modellen) {
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey
+      let r: Response
+      try {
+        r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+      } catch (_e) {
+        return res({ error: { type: 'network', message: 'Kon Gemini niet bereiken.' } }, 502)
+      }
+      const data = await r.json().catch(() => null)
+      if (r.ok) {
+        const parts = data?.candidates?.[0]?.content?.parts ?? []
+        const text = parts.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text).join('')
+        return res({ content: [{ type: 'text', text }] }, 200)
+      }
+      laatsteStatus = r.status
+      laatsteMsg = data?.error?.message || ''
+      if (r.status === 429 || r.status === 500 || r.status === 503) continue
+      return res({ error: { type: 'gemini_error', message: 'AI (Gemini): ' + (laatsteMsg || 'foutmelding.') } }, 502)
     }
-    const data = await r.json().catch(() => null)
-    if (r.ok) {
-      const parts = data?.candidates?.[0]?.content?.parts ?? []
-      const text = parts.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text).join('')
-      return res({ content: [{ type: 'text', text }] }, 200)
-    }
-    laatsteStatus = r.status
-    laatsteMsg = data?.error?.message || ''
-    if (r.status === 429) continue
-    break
+    if (ronde === 0) await new Promise((ok) => setTimeout(ok, 1200))
   }
 
   const msg = laatsteStatus === 429
     ? 'AI (Gemini): deze sleutel heeft geen gratis quota (Google meldt limiet 0). Probeer een sleutel van een ander Google-account, of gebruik Claude met een klein tegoed.'
-    : 'AI (Gemini): ' + (laatsteMsg || 'foutmelding.')
+    : 'Kaat is het heel even te druk (Google is overbelast). Probeer het over een halve minuut nog eens.'
   return res({ error: { type: 'gemini_error', message: msg } }, 502)
 }
 
