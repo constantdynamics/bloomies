@@ -1,7 +1,7 @@
 // Bloomies — AI-proxy (slug: claude-proxy)
 // Houdt de AI-sleutel server-side. Werkt met Google Gemini (gratis) of Anthropic
-// Claude (betaald). Bij overbelasting/quota probeert hij meerdere Gemini-modellen
-// en een tweede ronde na een korte pauze.
+// Claude (betaald). Bij overbelasting probeert hij geduldig opnieuw (oplopende
+// pauzes), zodat de zware jaarplan-aanroep vrijwel altijd lukt.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
 const cors = {
@@ -11,6 +11,9 @@ const cors = {
 }
 function res(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'content-type': 'application/json' } })
+}
+function wacht(ms: number): Promise<void> {
+  return new Promise((ok) => setTimeout(ok, ms))
 }
 const geminiKey = () => Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_API_KEY') ?? ''
 const anthropicKey = () => Deno.env.get('ANTHROPIC_API_KEY') ?? Deno.env.get('CLAUDE_API_KEY') ?? ''
@@ -46,7 +49,8 @@ async function viaClaude(body: any, apiKey: string): Promise<Response> {
     system: body.system,
     messages: body.messages,
   }
-  for (let poging = 0; poging < 2; poging++) {
+  const MAX = 5
+  for (let poging = 0; poging < MAX; poging++) {
     let r: Response
     try {
       r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -55,16 +59,28 @@ async function viaClaude(body: any, apiKey: string): Promise<Response> {
         body: JSON.stringify(safe),
       })
     } catch (_e) {
+      if (poging < MAX - 1) {
+        await wacht(1500 * (poging + 1))
+        continue
+      }
       return res({ error: { type: 'network', message: 'Kon Claude niet bereiken.' } }, 502)
     }
-    if ((r.status === 429 || r.status === 500 || r.status === 503 || r.status === 529) && poging === 0) {
-      await new Promise((ok) => setTimeout(ok, 1200))
+
+    const overbelast = r.status === 429 || r.status === 500 || r.status === 503 || r.status === 529
+    if (!overbelast) {
+      const text = await r.text()
+      return new Response(text, { status: r.status, headers: { ...cors, 'content-type': 'application/json' } })
+    }
+
+    if (poging < MAX - 1) {
+      const ra = Number(r.headers.get('retry-after'))
+      const pauze = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 10000) : Math.min(1200 * 2 ** poging, 8000)
+      await wacht(pauze)
       continue
     }
-    const text = await r.text()
-    return new Response(text, { status: r.status, headers: { ...cors, 'content-type': 'application/json' } })
+    return res({ error: { type: 'overloaded', message: 'Kaat (Claude) is het nu erg druk. Wacht een minuutje en probeer het dan opnieuw — dan lukt het vrijwel altijd.' } }, 502)
   }
-  return res({ error: { type: 'overloaded', message: 'Kaat is het heel even te druk. Probeer het over een halve minuut nog eens.' } }, 502)
+  return res({ error: { type: 'overloaded', message: 'Kaat is het even erg druk. Probeer het zo nog eens.' } }, 502)
 }
 
 async function viaGemini(body: any, apiKey: string): Promise<Response> {
@@ -110,7 +126,7 @@ async function viaGemini(body: any, apiKey: string): Promise<Response> {
       if (r.status === 429 || r.status === 500 || r.status === 503) continue
       return res({ error: { type: 'gemini_error', message: 'AI (Gemini): ' + (laatsteMsg || 'foutmelding.') } }, 502)
     }
-    if (ronde === 0) await new Promise((ok) => setTimeout(ok, 1200))
+    if (ronde === 0) await wacht(1500)
   }
 
   const msg = laatsteStatus === 429
