@@ -27,7 +27,7 @@ export function AddPlantSheet({
   onClose: () => void
   onAdded?: (p: Plant) => void
 }) {
-  const { meld, refreshPlants } = useGarden()
+  const { meld, refreshPlants, plants, registreerEerstePlant } = useGarden()
   const [foto, setFoto] = useState<VerkleindeFoto | null>(null)
   const [herkenning, setHerkenning] = useState<IdentifyResult | null>(null)
   const [bezig, setBezig] = useState(false)
@@ -78,6 +78,7 @@ export function AddPlantSheet({
       setFout('Geef de plant een naam (corrigeer gerust de herkenning).')
       return
     }
+    const eersteKeer = plants.length === 0
     setOpslaan(true)
     setFout(null)
     try {
@@ -99,6 +100,7 @@ export function AddPlantSheet({
       await refreshPlants()
       meld(`${plant.naam} toegevoegd 🌱`)
       onAdded?.(plant)
+      if (eersteKeer) await registreerEerstePlant()
       // Achtergrond: verzorgingsprofiel + waterinterval ophalen (blokkeert niet).
       haalVerzorging({ naam: plant.naam, soort: plant.soort, type: plant.type, locatie_in_tuin: plant.locatie_in_tuin, seizoen: getSeason() })
         .then(async (v) => {

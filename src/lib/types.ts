@@ -20,6 +20,8 @@ export interface Garden {
   ervaringsniveau: number
   laatste_analyse: string | null
   plan_bijgewerkt_op: string | null
+  eerste_plant_op: string | null
+  bon_gezien_op: string | null
   created_at: string
   updated_at: string
 }

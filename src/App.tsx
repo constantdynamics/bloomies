@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useGarden } from './lib/GardenContext'
 import { LaadScherm } from './components/ui'
+import { BonModal } from './components/BonModal'
 import { OnboardingScreen } from './screens/OnboardingScreen'
 import { VandaagScreen } from './screens/VandaagScreen'
 import { PlantenScreen } from './screens/PlantenScreen'
@@ -23,7 +24,7 @@ const NAV: { id: Tab; emoji: string; label: string }[] = [
 ]
 
 export default function App() {
-  const { laden, melding, intro, setIntro, plants } = useGarden()
+  const { laden, melding, intro, setIntro, plants, bonTonen, sluitBon } = useGarden()
   const [tab, setTab] = useState<Tab>('vandaag')
   const [briefingOpen, setBriefingOpen] = useState(false)
   // Elke minuut tikken zodat de Timers-tab-kleur live meeloopt.
@@ -35,19 +36,18 @@ export default function App() {
 
   const urgentie = maxWaterUrgentie(plants)
 
-  if (intro) return <OnboardingScreen onKlaar={() => setIntro(false)} />
-
-  if (laden) {
-    return (
+  let view: ReactNode
+  if (intro) {
+    view = <OnboardingScreen onKlaar={() => setIntro(false)} />
+  } else if (laden) {
+    view = (
       <div className="min-h-screen bg-cream-100">
         <Header onGoeroe={() => setBriefingOpen(true)} />
         <LaadScherm />
       </div>
     )
-  }
-
-  if (briefingOpen) {
-    return (
+  } else if (briefingOpen) {
+    view = (
       <BriefingScreen
         onClose={() => setBriefingOpen(false)}
         onNaarPlan={() => {
@@ -56,66 +56,73 @@ export default function App() {
         }}
       />
     )
-  }
+  } else {
+    view = (
+      <div className="min-h-screen flex flex-col bg-cream-100">
+        <Header onGoeroe={() => setBriefingOpen(true)} />
 
-  return (
-    <div className="min-h-screen flex flex-col bg-cream-100">
-      <Header onGoeroe={() => setBriefingOpen(true)} />
+        <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-28 pt-2">
+          {tab === 'vandaag' && <VandaagScreen onTab={(t) => setTab(t)} onGoeroe={() => setBriefingOpen(true)} />}
+          {tab === 'timers' && <TimersScreen />}
+          {tab === 'planten' && <PlantenScreen />}
+          {tab === 'plan' && <PlanScreen onGoeroe={() => setBriefingOpen(true)} />}
+          {tab === 'voorraad' && <VoorraadScreen />}
+          {tab === 'vogels' && <VogelsScreen />}
+        </main>
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-28 pt-2">
-        {tab === 'vandaag' && <VandaagScreen onTab={(t) => setTab(t)} onGoeroe={() => setBriefingOpen(true)} />}
-        {tab === 'timers' && <TimersScreen />}
-        {tab === 'planten' && <PlantenScreen />}
-        {tab === 'plan' && <PlanScreen onGoeroe={() => setBriefingOpen(true)} />}
-        {tab === 'voorraad' && <VoorraadScreen />}
-        {tab === 'vogels' && <VogelsScreen />}
-      </main>
-
-      <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-cream-200 bg-cream-50/95 backdrop-blur safe-bottom">
-        <div className="max-w-2xl mx-auto grid grid-cols-6">
-          {NAV.map((n) => {
-            const actief = tab === n.id
-            if (n.id === 'timers') {
-              const kleur = actief ? undefined : urgentieKleur(urgentie)
-              const hoog = urgentie >= 0.85 && !actief
+        <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-cream-200 bg-cream-50/95 backdrop-blur safe-bottom">
+          <div className="max-w-2xl mx-auto grid grid-cols-6">
+            {NAV.map((n) => {
+              const actief = tab === n.id
+              if (n.id === 'timers') {
+                const kleur = actief ? undefined : urgentieKleur(urgentie)
+                const hoog = urgentie >= 0.85 && !actief
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => setTab(n.id)}
+                    className={`flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition ${
+                      actief ? 'text-leaf-600' : ''
+                    } ${hoog ? 'animate-pulse' : ''}`}
+                    style={!actief ? { color: kleur } : undefined}
+                  >
+                    <Druppel className={`h-[22px] w-[22px] transition ${actief ? 'scale-110' : ''}`} />
+                    {n.label}
+                  </button>
+                )
+              }
               return (
                 <button
                   key={n.id}
                   onClick={() => setTab(n.id)}
                   className={`flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition ${
-                    actief ? 'text-leaf-600' : ''
-                  } ${hoog ? 'animate-pulse' : ''}`}
-                  style={!actief ? { color: kleur } : undefined}
+                    actief ? 'text-leaf-600' : 'text-bark-400'
+                  }`}
                 >
-                  <Druppel className={`h-[22px] w-[22px] transition ${actief ? 'scale-110' : ''}`} />
+                  <span className={`text-xl transition ${actief ? 'scale-110' : ''}`}>{n.emoji}</span>
                   {n.label}
                 </button>
               )
-            }
-            return (
-              <button
-                key={n.id}
-                onClick={() => setTab(n.id)}
-                className={`flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition ${
-                  actief ? 'text-leaf-600' : 'text-bark-400'
-                }`}
-              >
-                <span className={`text-xl transition ${actief ? 'scale-110' : ''}`}>{n.emoji}</span>
-                {n.label}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-      {melding && (
-        <div className="fixed bottom-24 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
-          <div className="bg-bark-800 text-cream-50 px-4 py-2.5 rounded-2xl shadow-soft text-sm font-medium animate-bloom-in max-w-sm text-center">
-            {melding}
+            })}
           </div>
-        </div>
-      )}
-    </div>
+        </nav>
+
+        {melding && (
+          <div className="fixed bottom-24 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
+            <div className="bg-bark-800 text-cream-50 px-4 py-2.5 rounded-2xl shadow-soft text-sm font-medium animate-bloom-in max-w-sm text-center">
+              {melding}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {view}
+      {bonTonen && <BonModal onClose={sluitBon} />}
+    </>
   )
 }
 

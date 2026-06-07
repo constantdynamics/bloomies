@@ -47,6 +47,9 @@ interface GardenState {
 
   meld: (tekst: string) => void
   setIntro: (v: boolean) => void
+  bonTonen: boolean
+  registreerEerstePlant: () => Promise<void>
+  sluitBon: () => Promise<void>
   setGarden: (g: Garden) => void
   refreshGarden: () => Promise<void>
   refreshPlants: () => Promise<void>
@@ -102,6 +105,8 @@ export function GardenProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const [bonTonen, setBonTonen] = useState(false)
+
   const seizoen = getSeason()
 
   const meld = useCallback((tekst: string) => {
@@ -127,6 +132,29 @@ export function GardenProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setGarden = useCallback((g: Garden) => setGardenState(g), [])
+
+  // Easter egg: bij de allereerste plant verschijnt de €100-waardebon (eenmalig).
+  const registreerEerstePlant = useCallback(async () => {
+    if (garden && !garden.eerste_plant_op) {
+      try {
+        const g = await db.updateGarden({ eerste_plant_op: new Date().toISOString() })
+        setGardenState(g)
+      } catch {
+        /* tonen gaat door, ook als opslaan even faalt */
+      }
+      setBonTonen(true)
+    }
+  }, [garden])
+
+  const sluitBon = useCallback(async () => {
+    setBonTonen(false)
+    try {
+      const g = await db.updateGarden({ bon_gezien_op: new Date().toISOString() })
+      setGardenState(g)
+    } catch {
+      /* niets */
+    }
+  }, [])
 
   useEffect(() => {
     let actief = true
@@ -183,6 +211,9 @@ export function GardenProvider({ children }: { children: ReactNode }) {
     intro,
     meld,
     setIntro,
+    bonTonen,
+    registreerEerstePlant,
+    sluitBon,
     setGarden,
     refreshGarden,
     refreshPlants,

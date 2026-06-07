@@ -61,6 +61,19 @@
   animation: bloom-in 0.35s ease-out both;
 }
 
+/* Confetti voor de waardebon-verrassing */
+@keyframes confetti-fall {
+  0% { transform: translateY(-12vh) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0.85; }
+}
+.confetti {
+  top: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 /* Veilige marges voor telefoons met notch */
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
