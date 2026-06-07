@@ -50,6 +50,7 @@ interface GardenState {
   bonTonen: boolean
   registreerEerstePlant: () => Promise<void>
   sluitBon: () => Promise<void>
+  heropenBon: () => void
   setGarden: (g: Garden) => void
   refreshGarden: () => Promise<void>
   refreshPlants: () => Promise<void>
@@ -156,6 +157,8 @@ export function GardenProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const heropenBon = useCallback(() => setBonTonen(true), [])
+
   useEffect(() => {
     let actief = true
     ;(async () => {
@@ -214,6 +217,7 @@ export function GardenProvider({ children }: { children: ReactNode }) {
     bonTonen,
     registreerEerstePlant,
     sluitBon,
+    heropenBon,
     setGarden,
     refreshGarden,
     refreshPlants,

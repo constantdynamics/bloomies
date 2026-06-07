@@ -24,7 +24,7 @@ const NAV: { id: Tab; emoji: string; label: string }[] = [
 ]
 
 export default function App() {
-  const { laden, melding, intro, setIntro, plants, bonTonen, sluitBon } = useGarden()
+  const { laden, melding, intro, setIntro, plants, bonTonen, sluitBon, garden, heropenBon } = useGarden()
   const [tab, setTab] = useState<Tab>('vandaag')
   const [briefingOpen, setBriefingOpen] = useState(false)
   // Elke minuut tikken zodat de Timers-tab-kleur live meeloopt.
@@ -59,6 +59,15 @@ export default function App() {
   } else {
     view = (
       <div className="min-h-screen flex flex-col bg-cream-100">
+        {garden?.eerste_plant_op && (
+          <button
+            onClick={heropenBon}
+            className="w-full bg-gradient-to-r from-bloom-400 via-bloom-300 to-leaf-500 text-white text-center py-2.5 px-4 shadow-soft active:scale-[0.99]"
+          >
+            <p className="font-display text-lg font-bold tracking-wide leading-tight">🎁 CADEAUBON VAN €100 UNLOCKED! 🎉</p>
+            <p className="text-[11px] opacity-90 leading-tight">tik om de bon te bekijken</p>
+          </button>
+        )}
         <Header onGoeroe={() => setBriefingOpen(true)} />
 
         <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-28 pt-2">
