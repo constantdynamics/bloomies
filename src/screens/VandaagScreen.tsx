@@ -100,7 +100,7 @@ export function VandaagScreen({ onTab, onGoeroe }: { onTab: (t: Tab) => void; on
         </div>
       </div>
 
-      <DemoReset />
+      {/* <DemoReset /> tijdelijk verborgen — terugzetten op verzoek */}
 
       <AddPlantSheet open={addOpen} onClose={() => setAddOpen(false)} />
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
